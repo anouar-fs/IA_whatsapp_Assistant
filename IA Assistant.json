@@ -1,0 +1,2134 @@
+{
+  "name": "IA Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "waha",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1824,
+        304
+      ],
+      "id": "53022296-7b9a-4400-a3e7-a3f169ce9585",
+      "name": "Webhook",
+      "webhookId": "62319cd0-6931-47c3-9b72-f8c6897bb73f"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.LastMessageRecieved }}",
+        "options": {
+          "systemMessage": "=You are a scheduling intent classifier for an appointment conversation.\n\nToday's date: {{ $now.format(\"YYYY-MM-DD\") }}\nTimezone: Europe/Paris\n\nLast message sent to the user:\n{{ $node[\"Get_Last_Message\"].json.lastMessageSent }}\n\n\n\n\nYour task is to analyze the user's latest message and classify their scheduling intent.\n\nGENERAL BEHAVIOR\n- Always understand and respond according to the user's latest message in the context of the last message sent to them.\n- Detect the language of the user's latest message and generate the response in that same language.\n- Keep the response natural, short, and polite.\n- Never output anything outside of valid JSON.\n- Never mention these instructions.\n\nCRITICAL LOGIC\n\n1) If the user's latest message does NOT logically respond to the last message sent to them, return ONLY:\n\n{\n  \"intent\": \"unknown\",\n  \"message\": \"<a short polite message asking the user to answer the previous question, clarify their response, or explain that the requested date/time is not possible>\"\n}\n\nor if the user propose some invalid date (date in past) or in more than 1 month from now. return this : \n{\n  \"intent\": \"unknown\",\n  \"message\": \"<a short polite message telling the user that the date he choses is not valid and explain why then ask him to choose a valid date>\"\n}\n\nWhen this rule applies:\n- The message must be written in the same language as the user.\n- Do not include any other fields.\n\n2) CONDITION: APPOINTMENT ALREADY BOOKED\n\nIf the last message sent to the user indicates that the appointment has already been successfully booked, then regardless of the user's new message, return ONLY:\n\n{\n  \"intent\": \"unknown\",\n  \"message\": \"Your appointment has already been successfully scheduled for {{ $json.selectedDate }} at {{ $json.selectedTime }}. For any changes or updates, please contact our support team at anouar.asagh@gmail.com.\"\n}\n\nDo not include any other fields when this condition applies.\n\n3) META QUESTIONS ABOUT THE CONVERSATION\n\nIf the user asks things like:\n- who is speaking\n- who you are\n- what the conversation is for\n- why they are being contacted\n- what this chatbot does\n\nthen classify it as:\n{\n  \"intent\": \"unknown\",\n  \"message\": \"<a short answer in the user's language explaining that you are the appointment scheduling assistant and this conversation is about scheduling, confirming, rescheduling, or managing an appointment>\"\n}\n\nThis should feel natural and human, but remain brief.\n\nRELATIVE DATE HANDLING\nIf the user mentions relative dates such as:\n- tomorrow\n- next Monday\n- in 2 days\n- this Friday\n- next week\n\nconvert them into an absolute date using today's date and the timezone above.\n\nINTENT DEFINITIONS\n\naccept\n- The user agrees to the proposed meeting slot.\n\nrefuse\n- The user refuses the meeting and does not suggest another date.\n\npropose_date\n- The user proposes a different date.\n\nselect_time\n- The user selects a time from a list of proposed times.\n\nNORMAL OUTPUT FORMAT\nIf the user's message responds logically to the previous message, follow this cases : \n\n1) ACCEPT\n\nIf the user agrees to the proposed meeting slot, return ONLY:\n\n{\n  \"intent\": \"accept\",\n  \"proposed_date\": null,\n  \"selected_time\": null\n}\n\n2) REFUSE\n\nIf the user refuses the meeting and does NOT suggest another date, return ONLY:\n\n{\n  \"intent\": \"refuse\",\n  \"message\": \"<a short polite message asking which date and time would work best for them and expressing flexibility to adjust accordingly>\"\n}\n\nRules:\n- The message must be written in the same language as the user.\n- Keep it short, natural, and human.\n\n3) PROPOSE_DATE\n\nIf the user proposes a different date, return ONLY:\n\n{\n  \"intent\": \"propose_date\",\n  \"proposed_date\": \"YYYY-MM-DD\",\n  \"selected_time\": null\n}\n\n4) SELECT_TIME\n\nIf the user selects a time from previously proposed slots, return ONLY:\n\n{\n  \"intent\": \"select_time\",\n  \"proposed_date\": null,\n  \"selected_time\": \"HH:MM\"\n}\n\n5) AVAILABILITIES\n\nIf the workflow input data contains availability data such as:\n\n[\n  {\n    \"cause\": \"availablities\",\n    \"text\": \"\\\"09:00\\\"\\n• \\\"10:00\\\"\\n• \\\"11:00\\\"\"\n  }\n]\n\nThen return ONLY:\n\n{\n  \"intent\": \"availibilities\",\n  \"message\": \"<a polite message asking the user to choose one of the available time slots provided>\"\n}\n\n\nSTRICT RULES\n- Always return valid JSON.\n- Never return text outside JSON.\n- Always follow the correct schema depending on the situation.\n- Do not mix fields from different schemas.\n- If intent = \"unknown\", ONLY return the unknown schema.\n- If the user asks a meta question, use intent = \"unknown\" and answer naturally in the user's language.\n- If a date or time is invalid, impossible, or unclear, use intent = \"unknown\" and explain briefly in the user's language."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        992,
+        480
+      ],
+      "id": "5582d7e4-4ff2-47bf-853c-21e7ce18675b",
+      "name": "AI Agent",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=gdshgsqdygsdyfgsydgfsdyqg",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        672
+      ],
+      "id": "e9212581-a679-4466-bc7e-2bb0bd6584f2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        912,
+        688
+      ],
+      "id": "8d791086-92b7-4d89-969d-6b1f0d4f4663",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "d0yB00WNM6ZMgTPW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://host.docker.internal:7047/Jid/{{ $node['Webhook'].json.body.payload.from }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1600,
+        304
+      ],
+      "id": "5850211d-c93c-41ad-a7ba-70f6192c6175",
+      "name": "GET_LEAD_BY_Jid",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://host.docker.internal:7047/Slot",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1072,
+        -32
+      ],
+      "id": "b24dc833-a813-47dc-8509-6c17ae7946bb",
+      "name": "GET_Next_Slot",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6714bfcf-e06c-4d0f-95af-69f7e36c472c",
+              "leftValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.whatsappAnswer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        368
+      ],
+      "id": "dd60108e-b62c-409d-bb58-3b60138b4d2b",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://host.docker.internal:7047/api/Lead/{{ $node[\"GET_LEAD_BY_Jid\"].json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json-patch+json",
+        "body": "=[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/whatsappAnswer\",\n    \"value\": true\n  }\n]\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2944,
+        -512
+      ],
+      "id": "69c17ab5-c373-4a28-b662-7cbfe5484476",
+      "name": "PATCH_AnswerWatssap",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "= {{ $node[\"Api_Secret\"].json.Api_Secret }}"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"chatId\": \"{{ $node[\"GET_LEAD_BY_Jid\"].json.phone.replace(/^\\+/, '') + \"@c.us\" }}\",\n  \"text\": \"Hello {{ $node[\"GET_LEAD_BY_Jid\"].json.firstName }},\\n\\nWe would be pleased to arrange a meeting with one of our advisors so you can learn more about our services.\\n\\nWe are available on {{ $node[\"GET_Next_Slot\"].json.date }} at {{ $node[\"GET_Next_Slot\"].json.slot }}.\\n\\nWould this time work for you?\",\n  \"session\": \"default\"\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2624,
+        -240
+      ],
+      "id": "4d564596-a68c-4329-b2a6-cae43bfac2ca",
+      "name": "RespondMesssage1",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "leadId": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}",
+            "selectedDate": "={{ $json.date }}",
+            "selectedTime": "={{ $json.slot }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        -224
+      ],
+      "id": "86e4abab-ecac-41d7-a78e-f12b6a6ed5b9",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d7cd2d13-696a-46d2-9ce5-a03bbf38cee5",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "propose_date",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        256
+      ],
+      "id": "29767d23-09a2-4349-948e-d90f2e47ce91",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "selectedDate": "={{ $json.proposed_date }}",
+            "selectedTime": "={{ $json.selected_time }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        0
+      ],
+      "id": "5468e6f1-0755-4cce-9fa2-14cd183fa45f",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "05e8dadb-39f4-4461-9aa8-64cd557a6087",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "refuse",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1872,
+        496
+      ],
+      "id": "eeec99f1-afeb-43c4-958e-f3cb17f0c813",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "= {{ $node[\"Api_Secret\"].json.Api_Secret }}"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"chatId\": \"{{ $node[\"GET_LEAD_BY_Jid\"].json.phone.replace(/^\\+/, '') + \"@c.us\" }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"session\": \"default\"\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2656,
+        464
+      ],
+      "id": "bececbd6-c792-49c0-a7dc-2639ae1c0af4",
+      "name": "RespondMesssage",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "=https://host.docker.internal:7047/availabilities/{{ $json.proposed_date }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2000,
+        192
+      ],
+      "id": "208d1c70-848e-451e-a00d-a33f370fc6ed",
+      "name": "GET_Availibilities",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "05e8dadb-39f4-4461-9aa8-64cd557a6087",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "select_time",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "17dc00ec-93e7-4b48-bf6d-025d2c6a445c",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "accept",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        752
+      ],
+      "id": "98b78d18-a630-43b4-a5b1-1ef29bb155c7",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "selectedTime": "={{ $json.selected_time }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "dryRun": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        688
+      ],
+      "id": "23426bf3-4f5e-4679-b134-84d2b9c5efc0",
+      "name": "Update row(s)1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        656,
+        480
+      ],
+      "id": "5bb7f261-9ece-4847-8827-cbf2fb3e5438",
+      "name": "Get_Last_Message"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastMessageSent": "={{ $json.body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastMessageSent",
+              "displayName": "lastMessageSent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        -80
+      ],
+      "id": "3678f94d-762b-44d2-98ea-d66a9c83da7e",
+      "name": "Update row(s)2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "05e8dadb-39f4-4461-9aa8-64cd557a6087",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        1056
+      ],
+      "id": "0e1716b5-3113-4e8a-8bf4-7a7d4dc3079d",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "= {{ $node[\"Api_Secret\"].json.Api_Secret }}"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"chatId\": \"{{ $node[\"GET_LEAD_BY_Jid\"].json.phone.replace(/^\\+/, '') + \"@c.us\" }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"session\": \"default\"\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2144,
+        1024
+      ],
+      "id": "ab8afd00-4c6c-4c1e-b384-c6dab6fbf829",
+      "name": "RespondMesssage3",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://host.docker.internal:7047/api/Event",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  \"advisor\": 0,\n  \"lead\": $json.leadId,\n  \"date\": $json.selectedDate,\n  \"heureDebut\": $json.selectedTime,\n  \"statut\": 0,\n  \"createdAt\": new Date().toISOString()\n})\n}}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2576,
+        800
+      ],
+      "id": "a8256fa4-7982-4c3c-b833-3177c9aff3ab",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        },
+        "httpHeaderAuth": {
+          "id": "FSedXtLhf0tds9Xo",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3e1efbb4-1ce3-41b7-8ac3-1ca390558370",
+              "leftValue": "={{ $json.selected_time }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        752
+      ],
+      "id": "90f0441a-2240-4155-b6d2-8e7cac82a55f",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        880
+      ],
+      "id": "f1ea01ea-92ff-4e08-a495-24bb4958d443",
+      "name": "Get_Last_Message1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\n\n// Remove ```json and ```\nconst cleaned = raw\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nreturn [\n  {\n    json: JSON.parse(cleaned)\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        480
+      ],
+      "id": "9a8cafa6-9274-4a76-917e-72b9780ee6f2",
+      "name": "FormatAnswer"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cf3681ec-c7e0-410e-8b17-ef76c20a3384",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        800
+      ],
+      "id": "a54f8fe7-f4e4-4bb9-a462-235ce21c4e3c",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "url": "=https://host.docker.internal:7047/availabilities/{{ $node[\"Get_Last_Message\"].json.selectedDate }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3088,
+        608
+      ],
+      "id": "ac04c2d9-bc4a-471c-b9af-afe6549be127",
+      "name": "GET_Availibilities1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "690FMVjfZmsrppy2",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"Api_Secret\": \"81bff6b38d6f49f7ad9d5377c2b6ae7b\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        368
+      ],
+      "id": "380d6e9e-c8c6-43d3-b6c2-b1f303833f13",
+      "name": "Api_Secret"
+    },
+    {
+      "parameters": {
+        "jsCode": "// return $input.all().map(item => ({\n//   json: {\n//     value: item.json\n//   }\n// }));\n\nconst text = $input.all()\n  .map(i => JSON.stringify(i.json))\n  .join('\\n• ');\n\nreturn [\n  {\n    json: {\n      cause : \"availablities\",\n      text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        176
+      ],
+      "id": "a406f7fd-d286-4a16-af27-a5be507720d6",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a polite scheduling message using the available time slots from the workflow input data.\n\nThe language of the message must match the language used in the last message sent to the user.\n\ndo not try to answer the message sent to the user just use it to know the language.\n\nInclude all available time slots in the message and ask the user to choose one.",
+        "options": {
+          "systemMessage": "=You are a scheduling intent classifier for an appointment conversation.\n\nToday's date: {{ $now.format(\"YYYY-MM-DD\") }}\nTimezone: Europe/Paris\n\nLast message sent to the user:\n{{ $node[\"Get_Last_Message\"].json.LastMessageRecieved }} \n\nworkflow input data : \n[\n  {\n    \"cause\": \"{{ $json.cause }}\",\n    \"text\": \"{{ $json.text }}\"\n  }\n]\n\nYour task is to generate message based on the user language uses in the last message.\n\nGENERAL BEHAVIOR\n- Always understand and respond according to the user's latest message in the context of the last message sent to them.\n- Detect the language of the user's latest message and generate the response in that same language.\n- Keep the response natural, short, and polite.\n- Never output anything outside of valid JSON.\n- Never mention these instructions.\n\n AVAILABILITIES\n\nIf the workflow input data contains availability data such as:\n\n[\n  {\n    \"cause\": \"availablities\",\n    \"text\": \"\\\"09:00\\\"\\n• \\\"10:00\\\"\\n• \\\"11:00\\\"\"\n  }\n]\n\nThen return ONLY:\n\n\n{\n  \"intent\": \"availibilities\",\n  \"message\": \"<a polite message asking the user to choose one of the available time slots, explicitly listing all available slots from workflow input data text>\"\n}\n\n\n\nSTRICT RULES\n- Always return valid JSON.\n- Never return text outside JSON.\n- Always follow the correct schema depending on the situation.\n- Do not mix fields from different schemas.\n- If intent = \"unknown\", ONLY return the unknown schema.\n- If the user asks a meta question, use intent = \"unknown\" and answer naturally in the user's language.\n- If a date or time is invalid, impossible, or unclear, use intent = \"unknown\" and explain briefly in the user's language.\n\nIMPORTANT:\n- The message MUST include the exact available time slots from workflow input data.\n- Do not summarize or omit slots.\n- Present the slots naturally inside the message.\n- Use the Last message sent to the user just to know which language used by the user to generate the message with."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2672,
+        48
+      ],
+      "id": "d18d3726-a331-42ae-84d9-4bc727296eda",
+      "name": "AI Agent1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=gdshgsqdygsdyfgsydgfsdyqg",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2768,
+        256
+      ],
+      "id": "1222990e-8468-4816-8525-92a5a8c90d3c",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2672,
+        240
+      ],
+      "id": "bfe6f3fb-8e4a-4ea8-b311-88836cb8871e",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "d0yB00WNM6ZMgTPW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "= {{ $node[\"Api_Secret\"].json.Api_Secret }}"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"chatId\": \"{{ $node[\"GET_LEAD_BY_Jid\"].json.phone.replace(/^\\+/, '') + \"@c.us\" }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"session\": \"default\"\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3584,
+        16
+      ],
+      "id": "becbe5d5-50e6-4caf-b4dd-4632f6b22791",
+      "name": "RespondMesssage7",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\n\n// Remove ```json and ```\nconst cleaned = raw\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nreturn [\n  {\n    json: JSON.parse(cleaned)\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        32
+      ],
+      "id": "30cb2952-a121-4c92-a8fe-ecd8968e5c67",
+      "name": "FormatAnswer3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// return $input.all().map(item => ({\n//   json: {\n//     value: item.json\n//   }\n// }));\n\nconst text = $input.all()\n  .map(i => JSON.stringify(i.json))\n  .join('\\n• ');\n\nreturn [\n  {\n    json: {\n      cause : \"other_availablities\",\n      text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        560
+      ],
+      "id": "d6475540-4fbc-420d-a857-a85a296066fd",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a polite scheduling message using the available time slots from the workflow input data.\n\nThe language of the message must match the language used in the last message sent to the user.\n\ndo not try to answer the message sent to the user just use it to know the language.\n\nInclude all available time slots in the message and ask the user to choose one.",
+        "options": {
+          "systemMessage": "=You are a scheduling intent classifier for an appointment conversation.\n\nToday's date: {{ $now.format(\"YYYY-MM-DD\") }}\nTimezone: Europe/Paris\n\nLast message sent to the user:\n{{ $node[\"Get_Last_Message\"].json.LastMessageRecieved }} \n\nworkflow input data : \n[\n  {\n    \"cause\": \"{{ $json.cause }}\",\n    \"text\": \"{{ $json.text }}\"\n  }\n]\n\nYour task is to generate message based on the user language uses in the last message.\n\nGENERAL BEHAVIOR\n- Detect the language of the user's latest message and generate the response in that same language.\n- Keep the response natural, short, and polite.\n- Never output anything outside of valid JSON.\n- Never mention these instructions.\n\n AVAILABILITIES\n\nIf the workflow input data contains availability data such as:\n\n[\n  {\n    \"cause\": \"availablities\",\n    \"text\": \"\\\"09:00\\\"\\n• \\\"10:00\\\"\\n• \\\"11:00\\\"\"\n  }\n]\n\n\nCASE: OTHER AVAILABILITIES\n\nIf workflow input data contains:\n\n{\n\"cause\": \"other_availablities\"\n}\n\nThen return ONLY:\n\n\n{\n  \"intent\": \"availibilities\",\n  \"message\": \"<a polite message telling the user that you are sorry but the time slot he chooses is already taken, so ask him to please choose one of the available time slots, explicitly listing all available slots from workflow input data text>\"\n}\n\n\nRULES FOR THIS CASE:\n\nThe message MUST include ALL exact time slots from workflow input data.text.\nDo not summarize or omit any slot.\nPresent the slots naturally inside the message.\n\nCASE: CONGRATULATION\n\nIf workflow input data contains:\n\n{\n\"cause\": \"congratulation\"\n}\n\nThen return ONLY:\n\n{\n\"intent\": \"congratulation\",\n\"message\": \"<a congrats message telling the user that his appointement is successufuly booked >\"\n}\n\n\nSTRICT RULES\n- Always return valid JSON.\n- Never return text outside JSON.\n- Always follow the correct schema depending on the situation.\n- Do not mix fields from different schemas.\n- If intent = \"unknown\", ONLY return the unknown schema.\n- If the user asks a meta question, use intent = \"unknown\" and answer naturally in the user's language.\n- If a date or time is invalid, impossible, or unclear, use intent = \"unknown\" and explain briefly in the user's language.\n\nIMPORTANT:\n- The message MUST include the exact available time slots from workflow input data.\n- Do not summarize or omit slots.\n- Present the slots naturally inside the message.\n- Use the Last message sent to the user just to know which language used by the user to generate the message with."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3568,
+        544
+      ],
+      "id": "fd79d813-7760-4056-b435-b20051d755fa",
+      "name": "AI Agent3",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=gdshgsqdygsdyfgsydgfsdyqg",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3680,
+        752
+      ],
+      "id": "02c924dc-a95b-4ae5-9d6f-9f9b080ef359",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3584,
+        736
+      ],
+      "id": "1fad3f8a-eb0f-4c6f-ba7e-8bad1cf2dc0b",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "d0yB00WNM6ZMgTPW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "= {{ $node[\"Api_Secret\"].json.Api_Secret }}"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"chatId\": \"{{ $node[\"GET_LEAD_BY_Jid\"].json.phone.replace(/^\\+/, '') + \"@c.us\" }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"session\": \"default\"\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4160,
+        256
+      ],
+      "id": "0aa6808b-8264-4527-9f13-f069aaa3247e",
+      "name": "RespondMesssage8",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\n\n// Remove ```json and ```\nconst cleaned = raw\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nreturn [\n  {\n    json: JSON.parse(cleaned)\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        528
+      ],
+      "id": "1beb6e26-2df3-4c66-a0e5-66e5328400f4",
+      "name": "FormatAnswer4"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nreturn [\n  {\n    json: {\n      cause : \"congratulation\",\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3248,
+        864
+      ],
+      "id": "a1523a40-4b76-46de-af15-40594a44076f",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const media  =$('Webhook').first().json.body.payload.media.url\n\nconst Url = media.replace(\n  \"http://localhost:3000\",\n  \"http://host.docker.internal:3000\"\n);\nreturn [\n  {\n    json: {\n      media: Url,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        560
+      ],
+      "id": "d4566975-0f3d-4b81-915f-b4e802ee05a7",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.media }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "=81bff6b38d6f49f7ad9d5377c2b6ae7b"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -928,
+        560
+      ],
+      "id": "95bc6d1b-1af9-491c-867b-9261f0c0718e",
+      "name": "RespondMesssage4",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "items[0].binary.data.fileName = \"audio.ogg\";\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        560
+      ],
+      "id": "20ce73ca-fb93-41e9-9472-e88fb7af4f83",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "59b202eb-505c-44c0-b642-1197422b0010",
+              "leftValue": "={{ $('Webhook').item.json.body.payload.media }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1344,
+        304
+      ],
+      "id": "855d93ce-0238-4600-a3c5-c315a4e79d53",
+      "name": "If7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -592,
+        560
+      ],
+      "id": "06bf4cdb-f55f-4c4b-8dce-94e0d4a18732",
+      "name": "Transcription",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "VCUgMMSAR5n5Top7",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "LastMessageRecieved": "={{ $node['Webhook'].json.body.payload.body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastMessageSent",
+              "displayName": "lastMessageSent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "LastMessageRecieved",
+              "displayName": "LastMessageRecieved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        144
+      ],
+      "id": "dc76daee-2ccc-4263-8ca6-a5b2ca886a95",
+      "name": "Update row(s)4",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pS6w0yArDnq8e9ZL",
+          "mode": "list",
+          "cachedResultName": "scheduling_state",
+          "cachedResultUrl": "/projects/ZxzAtZv7pnmnBZ1x/datatables/pS6w0yArDnq8e9ZL"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "leadId",
+              "keyValue": "={{ $node[\"GET_LEAD_BY_Jid\"].json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "LastMessageRecieved": "={{ $json.text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedDate",
+              "displayName": "selectedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selectedTime",
+              "displayName": "selectedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastMessageSent",
+              "displayName": "lastMessageSent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "LastMessageRecieved",
+              "displayName": "LastMessageRecieved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        560
+      ],
+      "id": "34c14414-3da2-4b56-b5f1-8bcaa3ba9d4c",
+      "name": "Update row(s)5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/speech",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"canopylabs/orpheus-v1-english\",\n  \"input\": \"Hello from n8n\",\n  \"voice\": \"troy\",\n  \"response_format\": \"wav\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1360,
+        2512
+      ],
+      "id": "2c943b81-93c6-4840-bb8d-f67764ced86e",
+      "name": "Transcription1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "VCUgMMSAR5n5Top7",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1648,
+        2512
+      ],
+      "id": "b1df3894-362a-46f6-9f1f-33df96f77471",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "GET_LEAD_BY_Jid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "FormatAnswer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_LEAD_BY_Jid": {
+      "main": [
+        [
+          {
+            "node": "If7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "GET_Next_Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get_Last_Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH_AnswerWatssap": {
+      "main": [
+        []
+      ]
+    },
+    "GET_Next_Slot": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RespondMesssage1": {
+      "main": [
+        [
+          {
+            "node": "PATCH_AnswerWatssap",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GET_Availibilities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_Availibilities": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RespondMesssage": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Last_Message": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get_Last_Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Last_Message1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatAnswer": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "GET_Availibilities1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_Availibilities1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Api_Secret": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "FormatAnswer3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatAnswer3": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RespondMesssage7": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "FormatAnswer4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatAnswer4": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RespondMesssage8": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "RespondMesssage4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RespondMesssage4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If7": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcription": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)4": {
+      "main": [
+        [
+          {
+            "node": "Api_Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)5": {
+      "main": [
+        [
+          {
+            "node": "Api_Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Transcription1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "ec7be2bc-4270-4701-b8c9-9f2a67b37f81",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "69143c7edbb2d671d1117a10aa6ae2a0d1ace6ae801bc6ebfb86ef377917a8a7"
+  },
+  "id": "lW0B2FgDhc2SQEjx",
+  "tags": []
+}
